@@ -97,7 +97,7 @@ uint8_t SimpleTimer::setTimer(long d, timer_delegate f, uint8_t n) {
     calls[free_spot].enabled = true;
     calls[free_spot].numRuns = 0;
     calls[free_spot].prev_millis = millis();
-    calls[free_spot].params = free_spot + num_timers;
+    calls[free_spot].params = free_spot;
 
     num_timers = getNumTimers();
 
