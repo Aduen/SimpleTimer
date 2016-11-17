@@ -76,6 +76,7 @@ public:
     uint8_t setTimeout(long d, timer_delegate f);
 
     // call function f every d milliseconds for n times
+    uint8_t setUTimer(long d, timer_delegate f, uint8_t n);
     uint8_t setTimer(long d, timer_delegate f, uint8_t n, uint8_t param);
     uint8_t setTimer(long d, timer_delegate f, uint8_t n);
 
@@ -100,6 +101,9 @@ public:
 
     // returns the number of used timers
     uint8_t getNumTimers();
+    
+    // get runs
+    uint8_t getResidualRuns(uint8_t fid);
 
 private:
     // in the previous run() call

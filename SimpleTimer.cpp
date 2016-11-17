@@ -28,7 +28,7 @@
 #include "SimpleTimer.h"
 
 SimpleTimer::SimpleTimer() {
-    long current_millis = millis();
+    long current_millis = micros();
 
     for (int i = 0; i < MAX_TIMERS; i++) {
         calls[i].enabled = false;
@@ -42,11 +42,11 @@ SimpleTimer::SimpleTimer() {
 
 
 void SimpleTimer::run() {
-    int i;
+    uint8_t i;
     long current_millis;
 
     // get current time
-    current_millis = millis();
+    current_millis = micros();
 
     for (i = 0; i < MAX_TIMERS; i++) {
 
@@ -62,6 +62,7 @@ void SimpleTimer::run() {
 			// "run forever" timers must always be executed
 			if (calls[i].maxRuns == RUN_FOREVER) {
 				(calls[i].callback)(calls[i].params);
+                continue;
 			}
 			// other timers get executed the specified number of times
 
@@ -69,7 +70,7 @@ void SimpleTimer::run() {
 			//if an earlier short timer gets deleted before an long later one, it gets overriden because
 			//of the num_timers just stacks upwards and doesnt look down
 
-			else if (calls[i].numRuns < calls[i].maxRuns) {
+			if (calls[i].numRuns < calls[i].maxRuns) {
 				(calls[i].callback)(calls[i].params);
 				calls[i].numRuns++;
 
@@ -83,6 +84,29 @@ void SimpleTimer::run() {
     }
 }
 
+uint8_t SimpleTimer::setUTimer(long d, timer_delegate f, uint8_t n) {
+    if (num_timers >= MAX_TIMERS) {
+        return -1;
+    }
+    
+    uint8_t free_spot = getAvailableSpot();
+    if(free_spot < 0)return -1;
+    
+    d = d<50 ? 50 : d-2-(free_spot*2); //takes Ntimers *2uS before call execution
+    
+    calls[free_spot].delay = d;
+    calls[free_spot].callback = f;
+    calls[free_spot].maxRuns = n;
+    calls[free_spot].enabled = true;
+    calls[free_spot].numRuns = 0;
+    calls[free_spot].prev_millis = micros();
+    calls[free_spot].params = free_spot;
+    
+    num_timers = getNumTimers();
+    
+    return free_spot;
+}
+
 uint8_t SimpleTimer::setTimer(long d, timer_delegate f, uint8_t n) {
 	if (num_timers >= MAX_TIMERS) {
         return -1;
@@ -91,12 +115,12 @@ uint8_t SimpleTimer::setTimer(long d, timer_delegate f, uint8_t n) {
     uint8_t free_spot = getAvailableSpot();
     if(free_spot < 0)return -1;
 
-    calls[free_spot].delay = d;
+    calls[free_spot].delay = d*1000;
     calls[free_spot].callback = f;
     calls[free_spot].maxRuns = n;
     calls[free_spot].enabled = true;
     calls[free_spot].numRuns = 0;
-    calls[free_spot].prev_millis = millis();
+    calls[free_spot].prev_millis = micros();
     calls[free_spot].params = free_spot;
 
     num_timers = getNumTimers();
@@ -112,12 +136,12 @@ uint8_t SimpleTimer::setTimer(long d, timer_delegate f, uint8_t n, uint8_t param
     uint8_t free_spot = getAvailableSpot();
     if(free_spot < 0)return -1;
 
-    calls[free_spot].delay = d;
+    calls[free_spot].delay = d*1000;
     calls[free_spot].callback = f;
     calls[free_spot].maxRuns = n;
     calls[free_spot].enabled = true;
     calls[free_spot].numRuns = 0;
-    calls[free_spot].prev_millis = millis();
+    calls[free_spot].prev_millis = micros();
     calls[free_spot].params = param;
 
     num_timers = getNumTimers();
@@ -135,8 +159,8 @@ uint8_t SimpleTimer::setTimeout(long d, timer_delegate f) {
 }
 
 void SimpleTimer::change_delay(uint8_t numTimer, unsigned long d){
-	calls[numTimer].delay = d;
-	calls[numTimer].prev_millis = millis();
+	calls[numTimer].delay = d*1000;
+	calls[numTimer].prev_millis = micros();
 }
 
 void SimpleTimer::deleteTimer(uint8_t numTimer) {
@@ -181,6 +205,15 @@ void SimpleTimer::disable(uint8_t numTimer) {
     }
 
     calls[numTimer].enabled = false;
+}
+
+uint8_t SimpleTimer::getResidualRuns(uint8_t numTimer)
+{
+    if (numTimer >= MAX_TIMERS) {
+        return 0xFF;
+    }
+    
+    return calls[numTimer].numRuns;
 }
 
 
